@@ -5,13 +5,13 @@
 #![test_runner(rust_os::test_runner)]
 
 use core::panic::PanicInfo;
-use rust_os::{println,print};
+use rust_os::{print, println};
 
 #[cfg(not(test))] // new attribute
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
-    loop {}
+    rust_os::hlt_loop();
 }
 
 // our panic handler in test mode
@@ -24,28 +24,20 @@ fn panic(info: &PanicInfo) -> ! {
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
     println!("Hello world{}", "!");
-    
+
     rust_os::init();
-/*
-    // trigger a page fault
-    unsafe {
-        *(0xdeadbeef as *mut u64) = 42;
-    };
-*/
 
-/*
-    fn stack_overflow() {
-        stack_overflow();
-    }
+    use x86_64::registers::control::Cr3;
 
-    stack_overflow();
-*/
+    let (level_4_page_table, _) = Cr3::read();
+    println!(
+        "Level 4 page table at: {:?}",
+        level_4_page_table.start_address()
+    );
+
     #[cfg(test)]
     test_main();
 
     println!("Works!");
-    loop {
-    	print!("-");
-    }
+    rust_os::hlt_loop();
 }
-
